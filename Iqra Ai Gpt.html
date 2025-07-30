@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iqra AI GPT</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background-color: #1f1f1f;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #333;
+    }
+    header img {
+      height: 36px;
+      border-radius: 50%;
+    }
+    .menu-toggle {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: #ccc;
+      cursor: pointer;
+    }
+    #sidebar {
+      background-color: #1f1f1f;
+      width: 220px;
+      position: fixed;
+      top: 64px;
+      bottom: 0;
+      left: 0;
+      overflow-y: auto;
+      border-right: 1px solid #333;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+    #sidebar.open {
+      transform: translateX(0);
+    }
+    #sidebar a {
+      display: block;
+      color: #ccc;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    #sidebar a:hover {
+      color: white;
+      background: #2a2a2a;
+    }
+    #chat-container {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      margin-left: 0;
+      transition: margin-left 0.3s ease;
+    }
+    #chat-container.shifted {
+      margin-left: 220px;
+    }
+    .message {
+      margin: 0.5rem 0;
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      max-width: 70%;
+    }
+    .user {
+      align-self: flex-end;
+      background-color: #0059b3;
+    }
+    .bot {
+      align-self: flex-start;
+      background-color: #333;
+    }
+    footer {
+      background-color: #1f1f1f;
+      padding: 10px;
+      border-top: 1px solid #333;
+    }
+    .input-row {
+      display: flex;
+      gap: 6px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 0.8rem;
+      border: none;
+      background: #2c2c2c;
+      color: white;
+      font-size: 0.95rem;
+      border-radius: 8px;
+    }
+    button {
+      background-color: #212121;
+      color: white;
+      border: 1px solid #444;
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background-color: #333;
+    }
+    #extra-content {
+      padding: 1rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <img src="https://topsellerbook.com/wp-content/uploads/2025/06/cropped-%D9%88%D8%B8%D8%A7%D8%A6%D9%81-%D9%85%D9%83%D8%A7%D8%AA%D8%A8-%D9%85%D8%AD%D8%A7%D9%85%D8%A7%D8%A9-%D9%81%D9%8A-%D8%AF%D8%A8%D9%8A-1-1.png" alt="Logo" />
+      <span style="font-weight: 600; font-size: 1.1rem;">Iqra AI GPT</span>
+    </div>
+    <button onclick="toggleSettings()" class="menu-toggle">⚙️</button>
+  </header>
+
+  <div id="sidebar">
+    <a onclick="startNewChat()">📝 New Chat</a>
+    <a onclick="showHistory()">📁 Chat History</a>
+    <a onclick="showSettings()">⚙️ Settings</a>
+    <a onclick="showPremium()">⭐ Premium</a>
+  </div>
+
+  <div id="chat-container"></div>
+
+  <div id="extra-content"></div>
+
+  <footer>
+    <div class="input-row">
+      <input type="text" id="user-input" placeholder="Type your message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+    <div class="input-row" style="margin-top: 6px;">
+      <button onclick="generateImage()">🖼 Image</button>
+      <button onclick="generateCode()">💻 Code</button>
+    </div>
+  </footer>
+
+  <script>
+    const chatContainer = document.getElementById("chat-container");
+    const userInput = document.getElementById("user-input");
+    const extraContent = document.getElementById("extra-content");
+    const chatHistory = JSON.parse(localStorage.getItem("chatHistory") || "[]");
+
+    chatHistory.forEach(m => addMessage(m.role, m.text));
+
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("open");
+      chatContainer.classList.toggle("shifted");
+    }
+
+    function toggleSettings() {
+      showSettings();
+    }
+
+    function startNewChat() {
+      chatContainer.innerHTML = "";
+      localStorage.removeItem("chatHistory");
+      extraContent.style.display = "none";
+      document.getElementById("sidebar").classList.remove("open");
+      chatContainer.classList.remove("shifted");
+    }
+
+    function showHistory() {
+      const grouped = chatHistory.reduce((acc, curr, idx) => {
+        const groupIndex = Math.floor(idx / 2);
+        if (!acc[groupIndex]) acc[groupIndex] = [];
+        acc[groupIndex].push(curr);
+        return acc;
+      }, []);
+
+      extraContent.innerHTML = `<h3>📁 Chat History</h3><ul>${grouped.map((session, i) => `<li onclick="loadSession(${i})">Chat ${i + 1}</li>`).join('')}</ul>`;
+      extraContent.style.display = "block";
+    }
+
+    function loadSession(index) {
+      chatContainer.innerHTML = "";
+      const grouped = chatHistory.reduce((acc, curr, idx) => {
+        const groupIndex = Math.floor(idx / 2);
+        if (!acc[groupIndex]) acc[groupIndex] = [];
+        acc[groupIndex].push(curr);
+        return acc;
+      }, []);
+      grouped[index].forEach(m => addMessage(m.role, m.text));
+    }
+
+    function showSettings() {
+      extraContent.innerHTML = `<h3>⚙️ Settings</h3>
+        <label>Theme:
+          <select onchange="setTheme(this.value)">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="auto">Auto</option>
+          </select>
+        </label>
+        <p><a href="#" onclick="showPolicy()">Privacy Policy</a> | <a href="#" onclick="showTerms()">Terms</a> | <a href="#" onclick="showServices()">Services</a></p>`;
+      extraContent.style.display = "block";
+    }
+
+    function showPremium() {
+      extraContent.innerHTML = `<h3>⭐ Premium Plan</h3><p>🔓 Unlock Unlimited Chat, Image Generation, and Code Tools.<br><strong>Only ₹599/month</strong><br><button>Upgrade Now</button></p>`;
+      extraContent.style.display = "block";
+    }
+
+    function showPolicy() {
+      extraContent.innerHTML = `<h3>Privacy Policy</h3><p>This is a demo AI assistant. Your chats are saved locally in browser only.</p>`;
+    }
+
+    function showTerms() {
+      extraContent.innerHTML = `<h3>Terms & Conditions</h3><p>Use at your own discretion. No guarantee of accuracy. Educational use only.</p>`;
+    }
+
+    function showServices() {
+      extraContent.innerHTML = `<h3>Iqra AI GPT Services</h3><p>Chat, Image Generation, Code Writing, AI Answers, Premium Support</p>`;
+    }
+
+    function setTheme(theme) {
+      if (theme === "light") {
+        document.body.style.backgroundColor = "#f4f4f4";
+        document.body.style.color = "#111";
+      } else if (theme === "dark") {
+        document.body.style.backgroundColor = "#121212";
+        document.body.style.color = "#e0e0e0";
+      } else {
+        document.body.style.backgroundColor = "";
+        document.body.style.color = "";
+      }
+    }
+
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      addMessage("user", text);
+      saveMessage("user", text);
+      userInput.value = "";
+
+      addMessage("bot", "...");
+
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-goog-api-key": "AIzaSyBkWQMk9Q9AnPrpDIzjNecu24Xw2EyTmPY",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `Act as a polite and intelligent lady assistant. Respond to this: ${text}`
+                  },
+                ],
+              },
+            ],
+          }),
+        }
+      );
+
+      const data = await response.json();
+      const botReply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Error fetching reply";
+
+      removeLastBotMessage();
+      addMessage("bot", botReply);
+      saveMessage("bot", botReply);
+    }
+
+    function generateImage() {
+      userInput.value = "Generate an image of a beautiful futuristic city at night.";
+      sendMessage();
+    }
+
+    function generateCode() {
+      const type = prompt("What type of code do you want? (HTML/CSS/JS/Python)");
+      if (type) {
+        userInput.value = `Generate a sample ${type} code with explanation.`;
+        sendMessage();
+      }
+    }
+
+    function addMessage(role, text) {
+      const div = document.createElement("div");
+      div.className = `message ${role}`;
+      div.textContent = text;
+      chatContainer.appendChild(div);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function removeLastBotMessage() {
+      const messages = document.querySelectorAll(".message.bot");
+      if (messages.length > 0) {
+        chatContainer.removeChild(messages[messages.length - 1]);
+      }
+    }
+
+    function saveMessage(role, text) {
+      chatHistory.push({ role, text });
+      localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
+    }
+  </script>
+</body>
+</html>
